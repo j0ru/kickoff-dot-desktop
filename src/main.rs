@@ -1,10 +1,9 @@
-#![feature(string_remove_matches)]
 use freedesktop_entry_parser::{parse_entry, Entry};
 use glob::{glob, PatternError};
 use std::path::PathBuf;
 
 fn main() {
-    let termianal_prefix = "foot ";
+    let termianal_prefix = find_terminal();
     let desktop_files = get_desktop_files().unwrap();
     let mut desktop_entries: Vec<DesktopEntry> = Vec::new();
     for f in desktop_files {
@@ -16,11 +15,57 @@ fn main() {
 
     for entry in desktop_entries {
         if entry.terminal {
-            println!("{}={}{}", entry.name, termianal_prefix, entry.exec);
+            println!("{}={} {}", entry.name, termianal_prefix, entry.exec);
         } else {
             println!("{}={}", entry.name, entry.exec);
         }
     }
+}
+
+/// reimplementation of i3-sensible-terminal
+/// tests for $TERMINAL or returns the first existing terminal
+/// from a list of common terminals
+fn find_terminal() -> String {
+    if let Ok(term) = std::env::var("TERMINAL") {
+        return term;
+    };
+
+    for term in [
+        "x-terminal-emulator",
+        "mate-terminal",
+        "gnome-terminal",
+        "terminator",
+        "xfce4-terminal",
+        "foot",
+        "urxvt",
+        "rxvt",
+        "termit",
+        "Eterm",
+        "aterm",
+        "uxterm",
+        "xterm",
+        "roxterm",
+        "termite",
+        "lxterminal",
+        "terminology",
+        "st",
+        "qterminal",
+        "lilyterm",
+        "tilix",
+        "terminix",
+        "konsole",
+        "kitty",
+        "guake",
+        "tilda",
+        "alacritty",
+        "hyper",
+        "wezterm",
+    ] {
+        if let Ok(path) = which::which(term) {
+            return path.to_str().unwrap().to_string();
+        }
+    }
+    panic!("no matching terminal found")
 }
 
 fn get_desktop_files() -> Result<Vec<PathBuf>, PatternError> {
