@@ -2,7 +2,16 @@
 
 Smol program to read in relevant desktop files and print them in a kickoff compatible format
 
+## Installation
+```bash
+git clone https://github.com/j0ru/kickoff-dot-desktop.git
+cd kickoff-dot-desktop
+cargo install --path .
 ```
+
+## Usage
+
+```bash
 kickoff-dot-desktop | kickoff --from-stdin
 ```
 
