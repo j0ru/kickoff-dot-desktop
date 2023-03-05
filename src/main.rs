@@ -69,16 +69,33 @@ fn find_terminal() -> String {
 }
 
 fn get_desktop_files() -> Result<Vec<PathBuf>, PatternError> {
-    let desktop_dirs = vec![
-        "/usr/share/applications/*.desktop",
-        "/usr/local/share/applications/*.desktop",
-        "~/.local/share/applications/*.desktop",
+    let default_dirs = vec![
+        "/usr/share/applications/*.desktop".to_string(),
+        "/usr/local/share/applications/*.desktop".to_string(),
+        "~/.local/share/applications/*.desktop".to_string(),
     ];
+    let desktop_dirs: Vec<String> = if let Ok(paths) = std::env::var("XDG_DATA_DIRS") {
+        if !paths.is_empty() {
+            let paths: Vec<String> = std::env::split_paths(&paths)
+                .into_iter()
+                .map(|mut path| {
+                    path.push("*.desktop");
+                    path.to_str().unwrap().to_owned()
+                })
+                .collect();
+
+            paths
+        } else {
+            default_dirs
+        }
+    } else {
+        default_dirs
+    };
 
     let mut res = Vec::new();
 
     for dir in desktop_dirs {
-        for entry in glob(dir)?.flatten() {
+        for entry in glob(&dir)?.flatten() {
             res.push(entry)
         }
     }
