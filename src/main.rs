@@ -79,7 +79,7 @@ fn get_desktop_files() -> Result<Vec<PathBuf>, PatternError> {
             let paths: Vec<String> = std::env::split_paths(&paths)
                 .into_iter()
                 .map(|mut path| {
-                    path.push("applications/*.desktop");
+                    path.push("applications/**/*.desktop");
                     path.to_str().unwrap().to_owned()
                 })
                 .collect();
