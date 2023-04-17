@@ -69,11 +69,17 @@ fn find_terminal() -> String {
 }
 
 fn get_desktop_files() -> Result<Vec<PathBuf>, PatternError> {
-    let desktop_dirs = vec![
+    let mut desktop_dirs = vec![
         "/usr/share/applications/*.desktop",
         "/usr/local/share/applications/*.desktop",
-        "~/.local/share/applications/*.desktop",
     ];
+
+    let home = std::env::var("HOME")
+        .map(|home| format!("{home}/.local/share/applications/*.desktop"));
+
+    if let Ok(home) = &home {
+        desktop_dirs.push(home);
+    }
 
     let mut res = Vec::new();
 
