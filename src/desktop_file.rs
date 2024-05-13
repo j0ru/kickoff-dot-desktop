@@ -1,5 +1,6 @@
 use freedesktop_entry_parser::{parse_entry, Entry};
 use std::{fs::read_dir, path::Path};
+use thiserror::Error;
 
 pub fn get_desktop_entries<P: AsRef<Path>>(
     p: P,
@@ -20,7 +21,7 @@ pub fn get_desktop_entries<P: AsRef<Path>>(
             } else {
                 filename.to_string()
             };
-            if let Ok(entry) = DesktopEntry::from_entry(desktop_file, id) {
+            if let Ok(entry) = DesktopEntry::from_entry(&desktop_file, id) {
                 res.push(entry);
             }
         } else if filetype.is_dir() {
@@ -31,14 +32,20 @@ pub fn get_desktop_entries<P: AsRef<Path>>(
     Ok(res)
 }
 
-#[derive(Debug)]
-enum DesktopError {
-    ValuesMissing,
+#[derive(Debug, Error)]
+enum Error {
+    #[error("The desktop file is missing the {} key", self)]
+    ValuesMissing(&'static str),
+    #[error("The desktop file is not an applicatio")]
+    NotAnApplication,
 }
 
 impl DesktopEntry {
-    fn from_entry(value: Entry, id: String) -> Result<Self, DesktopError> {
+    fn from_entry(value: &Entry, id: String) -> Result<Self, Error> {
         let section = value.section("Desktop Entry");
+        if section.attr("Type") != Some("Application") {
+            return Err(Error::NotAnApplication);
+        }
         if let Some(name) = section.attr("Name") {
             if let Some(exec) = section.attr("Exec") {
                 let exec = [
@@ -47,20 +54,22 @@ impl DesktopEntry {
                 .iter()
                 .fold(exec.to_string(), |acc, s| acc.replace(s, ""));
 
-                let terminal = section.attr("Terminal").unwrap_or("false");
-                return Ok(DesktopEntry {
+                let terminal: bool = section
+                    .attr("Terminal")
+                    .is_some_and(|v| v.parse() == Ok(true));
+                Ok(DesktopEntry {
                     id,
                     name: name.to_string(),
-                    skip: section
-                        .attr("NoDisplay")
-                        .map(|val| val == "true")
-                        .unwrap_or(false),
+                    skip: section.attr("NoDisplay").is_some_and(|val| val == "true"),
                     exec,
-                    terminal: terminal == "true",
-                });
+                    terminal,
+                })
+            } else {
+                Err(Error::ValuesMissing("Exec"))
             }
+        } else {
+            Err(Error::ValuesMissing("Name"))
         }
-        Err(DesktopError::ValuesMissing)
     }
 }
 

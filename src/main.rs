@@ -34,6 +34,7 @@ fn main() {
 
     for dir in dirs {
         let entries = match get_desktop_entries(&dir, None) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
             Err(e) => {
                 eprintln!("problem when fetching from {dir}: {e}");
                 continue;
@@ -50,9 +51,9 @@ fn main() {
     for entry in desktop_entries {
         if !entry.skip {
             if entry.terminal {
-                println!("{}={} {}", entry.name, *TERMINAL, entry.exec)
+                println!("{}={} {}", entry.name, *TERMINAL, entry.exec);
             } else {
-                println!("{}={}", entry.name, entry.exec)
+                println!("{}={}", entry.name, entry.exec);
             }
         }
     }

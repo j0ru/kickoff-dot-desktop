@@ -49,6 +49,7 @@ version = "0.1.0"
 dependencies = [
  "freedesktop_entry_parser",
  "lazy_static",
+ "thiserror",
  "which",
 ]
 
