@@ -109,7 +109,7 @@ fn find_terminal() -> String {
         "hyper",
         "wezterm",
     ] {
-        if let Ok(_) = which::which(term) {
+        if which::which(term).is_ok() {
             debug!("Terminal set from auto-discovery: {term}");
             return term.into();
         }

@@ -28,7 +28,7 @@ impl FileType {
 
 fn follow_link(path: PathBuf) -> Result<PathBuf, io::Error> {
     if !path.is_symlink() {
-        return Ok(path);
+        Ok(path)
     } else {
         let link = fs::read_link(&path)?;
         if link.is_absolute() {
