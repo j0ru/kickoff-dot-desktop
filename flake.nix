@@ -2,35 +2,45 @@
   description = ".desktop parser for kickoff";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = {
+  outputs = inputs @ {
     self,
-    nixpkgs,
-  }: let
-    supportedSystems = ["x86_64-linux"];
-    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-    pkgsFor = nixpkgs.legacyPackages;
-  in {
-    packages = forAllSystems (system: {
-      default = pkgsFor.${system}.callPackage ./default.nix {};
-    });
+    flake-parts,
+    home-manager,
+    ...
+  }:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      imports = [
+        home-manager.flakeModules.home-manager
+      ];
+      systems = ["x86_64-linux" "aarch64-linux"];
 
-    devShells = forAllSystems (system: let
-      pkgs = pkgsFor.${system};
-    in {
-      default = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [
-          cargo
-          rustc
-          rustfmt
-          clippy
-          rust-analyzer
-          pkg-config
-          fontconfig
-          libxkbcommon
-        ];
+      perSystem = {
+        pkgs,
+        system,
+        ...
+      }: {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          name = "kickoff-dot-desktop";
+          buildInputs = [pkgs.libxkbcommon];
+          nativeBuildInputs = [pkgs.pkg-config];
+          src = ./.;
+          cargoLock.lockFile = ./Cargo.lock;
+        };
+
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [pkgs.rustPlatform.buildRustPackage];
+          buildInputs = [pkgs.libxkbcommon];
+          nativeBuildInputs = [pkgs.pkg-config pkgs.rustc pkgs.cargo pkgs.rust-analyzer];
+        };
       };
-    });
-  };
+
+      flake = {
+        homeModules.default = import ./nix/home-manager.nix self;
+      };
+    };
 }
